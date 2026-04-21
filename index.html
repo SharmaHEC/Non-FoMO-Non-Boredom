@@ -393,10 +393,26 @@
       to   { transform: translateX(-50%) rotate(5deg); }
     }
 
+    #fomo-overlay {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px;
+      font-size: 16px;
+      white-space: pre-line;
+      z-index: 10;
+    }
+    #fomo-overlay.hidden { display: none; }
+
     #status-feed {
       margin-top: 10px;
       font-size: 13px;
-      min-height: 24px;
+      min-height: 24px; /* slightly taller so messages feel less “blinky” */
       color: #374151;
     }
     #status-feed.exciting-feed {
@@ -580,7 +596,7 @@
         limits how often you can cheer. Remember, other players also have a similar option.
       </p>
       <p id="bonus-instructions">
-        In addition, if you win this race, you will qualify to take part
+        In addition, if you win this race, you will qualify to take part 
         in a draw in which the winner receives an Amazon gift card worth 50 Canadian dollars.
       </p>
       <button id="btn-intro-continue" class="primary">Continue</button>
@@ -599,6 +615,7 @@
         <div id="race-track">
           <div class="finish-line"></div>
         </div>
+        <div id="fomo-overlay" class="hidden"></div>
       </div>
 
       <div id="race-progress-wrap">
@@ -628,13 +645,13 @@
     </div>
 
     <div id="screen-end" class="screen">
-      <h3>Thank you</h3>
+      <h3>You are the winner!</h3>
       <p id="end-message-main"></p>
       <div id="leaderboard" style="display:none;"></div>
       <div id="ratings-block">
-        <button id="continueBtn" class="primary">
-          Continue to the next part of the study
-        </button>
+       <button id="continueBtn" class="primary">
+      Continue to the next part of the study
+   	 </button>
       </div>
     </div>
   </div>
@@ -647,7 +664,7 @@
 
     var CONDITION = {
       participantId: getParticipantId(),
-      FOMO: true,
+      FOMO: false,
       EXCITING: true
     };
 
@@ -1081,7 +1098,7 @@
     };
     var lastCommentaryType = "";
     var lastCommentaryTimeMs = 0;
-    var COMMENTARY_MIN_VISIBLE_MS = 1200;
+    var COMMENTARY_MIN_VISIBLE_MS = 1200; // minimum time before replacing a message
 
     function getCommentary(type, data) {
       var pool = commentaryPool[type];
@@ -1097,7 +1114,9 @@
       if (!CONDITION.EXCITING) return;
 
       var nowMs = performance.now();
+      // Don't overwrite a message too quickly unless it's a different *phase* (e.g., slippery start)
       if (nowMs - lastCommentaryTimeMs < COMMENTARY_MIN_VISIBLE_MS) {
+        // Allow overriding only for dramatic slippery-track start
         if (!(type === "slipperyTrack" && dramatic && !slipperyTrackActive)) {
           return;
         }
@@ -1125,6 +1144,7 @@
     var horseChosen = null;
     var horses = [];
     var raceInterval = null;
+    var interruptTimeout = null;
     var raceEndTimeout = null;
     var raceEnded = false;
     var raceStartPerfTime = null;
@@ -1197,7 +1217,7 @@
         if (!horseChosen) return;
         logEvent("horse_chosen", { horse: horseChosen });
         startExcitingAmbience();
-        startFomoRace();
+        startRace();
       });
     }
 
@@ -1300,18 +1320,27 @@
       leadChangeCount = 0;
     }
 
-    function startFomoRace() {
-      RACE_TOTAL_MS = 240 * 1000;
-      FOMO_INTERRUPT_MS = null;
+function startRace() {
+  RACE_TOTAL_MS = 240 * 1000;
+  FOMO_INTERRUPT_MS = null;
 
-      startRaceUI();
-      logEvent("fomo_race_start");
-      startRaceAnimation();
+  startRaceUI();
+  logEvent("race_start", {
+    FOMO: CONDITION.FOMO,
+    EXCITING: CONDITION.EXCITING
+  });
+  startRaceAnimation();
 
-      raceEndTimeout = setTimeout(function() {
-        if (!raceEnded) endRace("time_up");
-      }, RACE_TOTAL_MS + 2000);
-    }
+  if (CONDITION.FOMO) {
+    interruptTimeout = setTimeout(function() {
+      triggerFomoInterrupt();
+    }, 180 * 1000);
+  }
+
+  raceEndTimeout = setTimeout(function() {
+    if (!raceEnded) endRace("time_up");
+  }, RACE_TOTAL_MS + 2000);
+}    
 
     function setupRaceTrack() {
       var track = el("race-track");
@@ -1587,6 +1616,7 @@
                 } else if (gap2 < 1.5) {
                   showCommentary("closeRace", null, false);
                 } else {
+                  // Generic leader text, but DO NOT spam or overwrite dramatic messages too quickly
                   if (Math.random() < 0.25 &&
                       (performance.now() - lastCommentaryTimeMs) > COMMENTARY_MIN_VISIBLE_MS * 1.2) {
                     var msg;
@@ -1617,86 +1647,159 @@
       }, stepInterval);
     }
 
-    function computeWinnerId() {
-      return horseChosen;
-    }
+    function triggerFomoInterrupt() {
+      if (raceEnded) return;
 
-    function buildLeaderboardHTML() {
-      var ranked = horses.slice().sort(function(a, b) { return b.pos - a.pos; });
-      var topThree = ranked.slice(0, 3);
-      var medals = ["🥇", "🥈", "🥉"];
-      var rankLabels = ["1st Place", "2nd Place", "3rd Place"];
-      var html = '<div class="podium-container">';
-
-      for (var j = 0; j < topThree.length; j++) {
-        var h = topThree[j];
-        var rank = j + 1;
-        var isYou = h.id === horseChosen;
-        html += '<div class="podium-col podium-' + rank + '">';
-        html += '<span class="podium-medal">' + medals[j] + '</span>';
-        html += '<div class="podium-rank">' + rankLabels[j] + '</div>';
-        html += '<div class="podium-name">' + h.actorLabel + ' - Horse ' + h.id + '</div>';
-        if (isYou) html += '<span class="podium-you-tag">YOUR HORSE</span>';
-        html += '</div>';
+      var bbtn = el("boost-btn");
+      if (bbtn) {
+        bbtn.disabled = true;
+        bbtn.style.display = "none";
       }
 
-      html += '</div>';
-      return html;
-    }
+      var cheerPanel = el("cheer-panel");
+      if (cheerPanel) cheerPanel.style.display = "none";
 
-    function endRace(reason) {
-      if (raceEnded) return;
-      raceEnded = true;
+      var feed = el("status-feed");
+      if (feed) feed.style.display = "none";
+
+      var progressWrap = el("race-progress-wrap");
+      if (progressWrap) progressWrap.classList.remove("visible");
+
+      var chosen = horses.find(function(h) { return h.id === horseChosen; });
+      if (chosen) {
+        var others = horses.filter(function(h) { return h.id !== horseChosen; });
+        if (others.length > 0) {
+          others.sort(function(a, b) { return b.pos - a.pos; });
+          var topOther = others[0];
+          chosen.pos = Math.max(chosen.pos, topOther.pos + 1.0);
+          chosen.pos = Math.min(96, chosen.pos);
+          chosen.el.style.left = chosen.pos + "%";
+        }
+      }
+
+      var overlay = el("fomo-overlay");
+      if (!overlay) return;
+      overlay.textContent =
+        "We now need you for the next part of the study.\n\n" +
+        "The other players will continue racing to the finish, and any lottery\n" +
+        "entries will be based on the final result.\n\n" +
+        "You will not see which horse wins, but the outcome will still count.";
+      overlay.classList.remove("hidden");
+
+      logEvent("fomo_interrupt");
 
       if (raceInterval) {
         clearInterval(raceInterval);
         raceInterval = null;
       }
-      if (raceEndTimeout) {
-        clearTimeout(raceEndTimeout);
-        raceEndTimeout = null;
-      }
-
-      var bbtn = el("boost-btn");
-      if (bbtn) bbtn.disabled = true;
 
       stopAllAudio();
 
-      if (horseChosen && horses && horses.length) {
-        var chosenHorse = horses.find(function(h) { return h.id === horseChosen; });
-        var maxPos = 4;
-
-        for (var i = 0; i < horses.length; i++) {
-          if (horses[i].pos > maxPos) maxPos = horses[i].pos;
-        }
-
-        if (chosenHorse) {
-          chosenHorse.pos = Math.min(96, maxPos + 0.2);
-          if (chosenHorse.el) chosenHorse.el.style.left = chosenHorse.pos + "%";
-        }
-      }
-
-      var winnerId = computeWinnerId();
-      logEvent("race_end", { reason: reason, winner: winnerId, leadChanges: leadChangeCount });
-
-      var endMsgEl = el("end-message-main");
-      var lbEl = el("leaderboard");
-      if (lbEl) {
-        lbEl.style.display = "block";
-        lbEl.innerHTML = buildLeaderboardHTML();
-      }
-
-      if (endMsgEl) {
-        if (winnerId === horseChosen) {
-          endMsgEl.innerHTML = '<span style="font-weight:bold;color:#16a34a;">Your horse won!</span>';
-        } else {
-          endMsgEl.innerHTML = '<span style="font-weight:bold;color:#b91c1c;">Your horse did not win.</span> Winner: Horse ' + winnerId + '.';
-        }
-      }
-
-      showScreen("end");
-      finishAndExport();
+      setTimeout(function() {
+        if (!raceEnded) endRace("fomo_interrupt");
+      }, 15000);
     }
+
+    function computeWinnerId() {
+      if (!horses || horses.length === 0) return null;
+      var best = horses[0];
+      for (var i = 1; i < horses.length; i++) {
+        if (horses[i].pos > best.pos) best = horses[i];
+      }
+      return best ? best.id : null;
+    }
+
+    function buildLeaderboardHTML() {
+      var playerHorse = null;
+      var others = [];
+      for (var i = 0; i < horses.length; i++) {
+        if (horses[i].id === horseChosen) playerHorse = horses[i];
+        else others.push(horses[i]);
+      }
+      others.sort(function(a, b) { return b.pos - a.pos; });
+
+      var podium = [];
+      if (playerHorse) {
+        podium.push({ rank: 1, name: "You", isYou: true });
+      }
+      if (others.length >= 1) {
+        podium.push({ rank: 2, name: others[0].actorLabel, isYou: false });
+      }
+      if (others.length >= 2) {
+        podium.push({ rank: 3, name: others[1].actorLabel, isYou: false });
+      }
+
+      var medals = ["\uD83E\uDD47", "\uD83E\uDD48", "\uD83E\uDD49"];
+      var rankLabels = ["1st Place", "2nd Place", "3rd Place"];
+
+      var html = '<div class="podium-container">';
+      for (var j = 0; j < podium.length; j++) {
+        var p = podium[j];
+        var medal = medals[p.rank - 1] || "";
+        var label = rankLabels[p.rank - 1] || "";
+        html += '<div class="podium-col podium-' + p.rank + '">';
+        html += '<span class="podium-medal">' + medal + '</span>';
+        html += '<div class="podium-rank">' + label + '</div>';
+        html += '<div class="podium-name">' + p.name + '</div>';
+        if (p.isYou) {
+          html += '<span class="podium-you-tag">YOUR HORSE</span>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function endRace(reason) {
+  if (raceEnded) return;
+  raceEnded = true;
+
+  if (raceInterval) {
+    clearInterval(raceInterval);
+    raceInterval = null;
+  }
+  if (interruptTimeout) {
+    clearTimeout(interruptTimeout);
+    interruptTimeout = null;
+  }
+  if (raceEndTimeout) {
+    clearTimeout(raceEndTimeout);
+    raceEndTimeout = null;
+  }
+
+  var bbtn = el("boost-btn");
+  if (bbtn) bbtn.disabled = true;
+
+  stopAllAudio();
+
+  var winnerId = computeWinnerId();
+  logEvent("race_end", {
+    reason: reason,
+    winner: winnerId,
+    leadChanges: leadChangeCount
+  });
+
+  var endTitle = screens.end ? screens.end.querySelector("h3") : null;
+  var endMsgEl = el("end-message-main");
+  var lbEl = el("leaderboard");
+
+  if (endTitle) {
+    endTitle.textContent = "You are the winner!";
+  }
+
+  if (endMsgEl) {
+    endMsgEl.textContent = "";
+    endMsgEl.style.display = "none";
+  }
+
+  if (lbEl) {
+    lbEl.innerHTML = buildLeaderboardHTML();
+    lbEl.style.display = "block";
+  }
+
+  showScreen("end");
+  finishAndExport();
+}
 
     function finishAndExport() {
       if (sessionEnded) return;
@@ -1740,17 +1843,19 @@
       logEvent("visibility_change", { state: document.visibilityState });
     });
 
-    document.addEventListener("DOMContentLoaded", function () {
-      var btn = document.getElementById("continueBtn");
-      if (btn) {
-        btn.addEventListener("click", function () {
-          window.parent.postMessage(
-            { type: "goToNextPage" },
-            "https://hecmontreal.eu.qualtrics.com"
-          );
-        });
-      }
+
+// Send message to Qualtrics when the end-screen button is clicked
+document.addEventListener("DOMContentLoaded", function () {
+  var btn = document.getElementById("continueBtn");
+  if (btn) {
+    btn.addEventListener("click", function () {
+      window.parent.postMessage(
+        { type: "goToNextPage" },
+        "https://hecmontreal.eu.qualtrics.com"
+      );
     });
+  }
+});
   </script>
 </body>
 </html>
