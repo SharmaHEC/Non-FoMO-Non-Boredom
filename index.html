@@ -392,10 +392,11 @@
       from { transform: translateX(-50%) rotate(-5deg); }
       to   { transform: translateX(-50%) rotate(5deg); }
     }
-#status-feed {
+
+    #status-feed {
       margin-top: 10px;
       font-size: 13px;
-      min-height: 24px; /* slightly taller so messages feel less “blinky” */
+      min-height: 24px;
       color: #374151;
     }
     #status-feed.exciting-feed {
@@ -598,7 +599,7 @@
         <div id="race-track">
           <div class="finish-line"></div>
         </div>
-</div>
+      </div>
 
       <div id="race-progress-wrap">
         <div id="race-progress-label">
@@ -631,9 +632,9 @@
       <p id="end-message-main"></p>
       <div id="leaderboard" style="display:none;"></div>
       <div id="ratings-block">
-       <button id="continueBtn" class="primary">
-      Continue to the next part of the study
-   	 </button>
+        <button id="continueBtn" class="primary">
+          Continue to the next part of the study
+        </button>
       </div>
     </div>
   </div>
@@ -1080,7 +1081,7 @@
     };
     var lastCommentaryType = "";
     var lastCommentaryTimeMs = 0;
-    var COMMENTARY_MIN_VISIBLE_MS = 1200; // minimum time before replacing a message
+    var COMMENTARY_MIN_VISIBLE_MS = 1200;
 
     function getCommentary(type, data) {
       var pool = commentaryPool[type];
@@ -1096,9 +1097,7 @@
       if (!CONDITION.EXCITING) return;
 
       var nowMs = performance.now();
-      // Don't overwrite a message too quickly unless it's a different *phase* (e.g., slippery start)
       if (nowMs - lastCommentaryTimeMs < COMMENTARY_MIN_VISIBLE_MS) {
-        // Allow overriding only for dramatic slippery-track start
         if (!(type === "slipperyTrack" && dramatic && !slipperyTrackActive)) {
           return;
         }
@@ -1126,7 +1125,7 @@
     var horseChosen = null;
     var horses = [];
     var raceInterval = null;
-var raceEndTimeout = null;
+    var raceEndTimeout = null;
     var raceEnded = false;
     var raceStartPerfTime = null;
     var RACE_TOTAL_MS = null;
@@ -1588,7 +1587,6 @@ var raceEndTimeout = null;
                 } else if (gap2 < 1.5) {
                   showCommentary("closeRace", null, false);
                 } else {
-                  // Generic leader text, but DO NOT spam or overwrite dramatic messages too quickly
                   if (Math.random() < 0.25 &&
                       (performance.now() - lastCommentaryTimeMs) > COMMENTARY_MIN_VISIBLE_MS * 1.2) {
                     var msg;
@@ -1620,12 +1618,7 @@ var raceEndTimeout = null;
     }
 
     function computeWinnerId() {
-      if (!horses || horses.length === 0) return null;
-      var best = horses[0];
-      for (var i = 1; i < horses.length; i++) {
-        if (horses[i].pos > best.pos) best = horses[i];
-      }
-      return best ? best.id : null;
+      return horseChosen;
     }
 
     function buildLeaderboardHTML() {
@@ -1668,6 +1661,20 @@ var raceEndTimeout = null;
       if (bbtn) bbtn.disabled = true;
 
       stopAllAudio();
+
+      if (horseChosen && horses && horses.length) {
+        var chosenHorse = horses.find(function(h) { return h.id === horseChosen; });
+        var maxPos = 4;
+
+        for (var i = 0; i < horses.length; i++) {
+          if (horses[i].pos > maxPos) maxPos = horses[i].pos;
+        }
+
+        if (chosenHorse) {
+          chosenHorse.pos = Math.min(96, maxPos + 0.2);
+          if (chosenHorse.el) chosenHorse.el.style.left = chosenHorse.pos + "%";
+        }
+      }
 
       var winnerId = computeWinnerId();
       logEvent("race_end", { reason: reason, winner: winnerId, leadChanges: leadChangeCount });
@@ -1733,19 +1740,17 @@ var raceEndTimeout = null;
       logEvent("visibility_change", { state: document.visibilityState });
     });
 
-
-// Send message to Qualtrics when the end-screen button is clicked
-document.addEventListener("DOMContentLoaded", function () {
-  var btn = document.getElementById("continueBtn");
-  if (btn) {
-    btn.addEventListener("click", function () {
-      window.parent.postMessage(
-        { type: "goToNextPage" },
-        "https://hecmontreal.eu.qualtrics.com"
-      );
+    document.addEventListener("DOMContentLoaded", function () {
+      var btn = document.getElementById("continueBtn");
+      if (btn) {
+        btn.addEventListener("click", function () {
+          window.parent.postMessage(
+            { type: "goToNextPage" },
+            "https://hecmontreal.eu.qualtrics.com"
+          );
+        });
+      }
     });
-  }
-});
   </script>
 </body>
 </html>
