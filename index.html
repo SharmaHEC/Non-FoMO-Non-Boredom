@@ -570,6 +570,7 @@
         <li>Choose one horse to back in the race.</li>
         <li>After you confirm your choice, the race will start automatically.</li>
         <li>Once the race begins, you cannot change your chosen horse.</li>
+        <li>Please make sure your audio is unmuted and your volume is turned on before starting the game.</li>
       </ol>
       <p id="cheer-instructions">
         During the race you will see a button labeled <strong>"Cheer your horse"</strong>.
@@ -578,8 +579,8 @@
         limits how often you can cheer. Remember, other players also have a similar option.
       </p>
       <p id="bonus-instructions">
-        In addition, if you win this race, you would qualify to take part
-        in a lottery in which the winner receives an iPad.
+        In addition, if you win this race, you will qualify to take part
+        in a draw in which the winner receives an Amazon gift card worth 50 Canadian dollars.
       </p>
       <button id="btn-intro-continue" class="primary">Continue</button>
     </div>
@@ -659,7 +660,7 @@
       if (conditionHasLottery()) {
         banner.style.display = "block";
         banner.textContent =
-          "iPad lottery: You would qualify to participate if you win!!";
+          "Amazon gift card draw: You would qualify to participate if you win!";
       } else {
         banner.style.display = "none";
       }
