@@ -2,9 +2,199 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Horse Race – FoMO + Non-boring</title>
+  <title>Horse Race – Non-FoMO + Non-boring</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
+
+#game-root {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+#race-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
+  gap: 14px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+#race-left { min-width: 0; }
+
+#race-video-panel {
+  position: relative;
+  min-height: 260px;
+  background: #0f172a;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(148,163,184,0.22);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.22);
+  isolation: isolate;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+#race-video-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(2,6,23,0.72), rgba(2,6,23,0.08) 45%, rgba(2,6,23,0.24));
+  z-index: 1;
+}
+
+#race-video-panel.heat-1 {
+  box-shadow: 0 0 0 1px rgba(96,165,250,0.28), 0 10px 28px rgba(0,0,0,0.24);
+}
+#race-video-panel.heat-2 {
+  box-shadow: 0 0 0 1px rgba(251,191,36,0.30), 0 14px 34px rgba(0,0,0,0.26), 0 0 24px rgba(59,130,246,0.15);
+}
+#race-video-panel.heat-3 {
+  box-shadow: 0 0 0 1px rgba(248,113,113,0.34), 0 16px 40px rgba(0,0,0,0.30), 0 0 36px rgba(239,68,68,0.18);
+}
+
+#race-video-panel.lead-player {
+  animation: videoPulseGreen 0.7s ease-out;
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.55), 0 0 28px rgba(34,197,94,0.28), 0 10px 28px rgba(0,0,0,0.25);
+}
+
+#race-video-panel.lead-rival {
+  animation: videoPulseRed 0.7s ease-out;
+  box-shadow: 0 0 0 2px rgba(239,68,68,0.52), 0 0 28px rgba(239,68,68,0.24), 0 10px 28px rgba(0,0,0,0.25);
+}
+
+#race-video-panel.final-stretch {
+  animation: videoStretchGold 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes videoPulseGreen {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+@keyframes videoPulseRed {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+@keyframes videoStretchGold {
+  from {
+    box-shadow: 0 0 0 1px rgba(251,191,36,0.35), 0 14px 34px rgba(0,0,0,0.25), 0 0 18px rgba(251,191,36,0.20);
+  }
+  to {
+    box-shadow: 0 0 0 2px rgba(251,191,36,0.60), 0 16px 40px rgba(0,0,0,0.30), 0 0 34px rgba(251,191,36,0.38);
+  }
+}
+
+#race-atmo-video {
+  display: block;
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  background: #000;
+}
+
+#race-video-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 2;
+  padding: 12px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+#race-video-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  background: rgba(220,38,38,0.9);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 0 14px rgba(220,38,38,0.28);
+}
+
+#race-video-live::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  animation: liveDot 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes liveDot {
+  from { opacity: 0.55; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1.08); }
+}
+
+#race-video-caption {
+  font-size: 13px;
+  line-height: 1.35;
+  max-width: 28ch;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.45);
+}
+
+#video-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.video-chip {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.20);
+  background: rgba(15,23,42,0.68);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  margin: 0;
+}
+
+.video-chip:hover { background: rgba(30,41,59,0.86); }
+.video-chip:disabled { opacity: 0.65; cursor: default; }
+
+#video-audio-hint {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 3;
+  background: rgba(2,6,23,0.72);
+  color: #e5e7eb;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(8px);
+}
+
+
+@media (max-width: 860px) {
+  #race-stage { grid-template-columns: 1fr; }
+  #race-atmo-video,
+  #race-video-panel {
+    min-height: 220px;
+    height: 220px;
+  }
+  #race-video-caption { max-width: none; }
+}
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       margin: 0;
@@ -12,8 +202,7 @@
       background: #f5f5f5;
       color: #222;
     }
-    #game-root { max-width: 800px; margin: 0 auto; padding: 12px; }
-
+  
     #bonus-banner {
       background: #fde68a;
       color: #111827;
@@ -393,20 +582,7 @@
       to   { transform: translateX(-50%) rotate(5deg); }
     }
 
-    #fomo-overlay {
-      position: absolute;
-      inset: 0;
-      background: #000;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 16px;
-      font-size: 16px;
-      white-space: pre-line;
-      z-index: 10;
-    }
+   
     #fomo-overlay.hidden { display: none; }
 
     #status-feed {
@@ -609,14 +785,60 @@
       <button id="btn-choose-confirm" class="primary" disabled>Confirm Choice</button>
     </div>
 
-    <div id="screen-race" class="screen">
-      <div id="bonus-banner"></div>
+<div id="screen-race" class="screen">
+  <div id="bonus-banner"></div>
+
+  <div id="race-stage">
+    <div id="race-left">
       <div id="race-container" style="position:relative;">
         <div id="race-track">
           <div class="finish-line"></div>
         </div>
         <div id="fomo-overlay" class="hidden"></div>
       </div>
+    </div>
+
+    <aside id="race-video-panel" aria-label="Race broadcast panel">
+	<div id="video-audio-hint"></div>
+
+      
+
+<video id="race-atmo-video" autoplay muted playsinline preload="metadata">
+  <source src="https://raw.githubusercontent.com/SharmaHEC/FoMO-Non-Boredom/main/HorseRaceVideocomplete.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>      
+
+
+      <div id="race-video-overlay">
+        <div id="race-video-live">Live</div>
+        <div id="race-video-caption">Grandstand cameras are following the race as the crowd noise builds.</div>
+      </div>
+    </aside>
+  </div>
+
+  <div id="race-progress-wrap">
+    <div id="race-progress-label">
+      <span>Race Progress</span>
+      <span id="race-progress-pct">0%</span>
+    </div>
+    <div id="race-progress-bar">
+      <div id="race-progress-fill"></div>
+    </div>
+  </div>
+
+  <button id="boost-btn" class="primary" style="margin-top:8px;">Cheer your horse</button>
+
+  <div id="cheer-panel">
+    <div id="stamina-line">
+      <span><strong>Cheer Energy</strong></span>
+      <span id="stamina-text">100%</span>
+    </div>
+    <div class="bar"><div id="stamina-fill"></div></div>
+    <div id="audio-note"></div>
+  </div>
+
+  <div id="status-feed"></div>
+</div>   
 
       <div id="race-progress-wrap">
         <div id="race-progress-label">
@@ -628,24 +850,11 @@
         </div>
       </div>
 
-      <button id="boost-btn" class="primary" style="margin-top:8px;">
-        Cheer your horse
-      </button>
-
-      <div id="cheer-panel">
-        <div id="stamina-line">
-          <span><strong>Cheer Energy</strong></span>
-          <span id="stamina-text">100%</span>
-        </div>
-        <div class="bar"><div id="stamina-fill"></div></div>
-        <div id="audio-note"></div>
-      </div>
-
       <div id="status-feed"></div>
     </div>
 
     <div id="screen-end" class="screen">
-      <h3>You are the winner!</h3>
+      <h3>Thank you</h3>
       <p id="end-message-main"></p>
       <div id="leaderboard" style="display:none;"></div>
       <div id="ratings-block">
@@ -663,10 +872,14 @@
     }
 
     var CONDITION = {
-      participantId: getParticipantId(),
-      FOMO: false,
-      EXCITING: true
-    };
+  participantId: getParticipantId(),
+  FOMO: false,
+  EXCITING: true
+};
+
+function conditionHasLottery() {
+  return true;
+}
 
     function conditionHasLottery() {
       return !(CONDITION.FOMO === false && CONDITION.EXCITING === false);
@@ -725,6 +938,94 @@
       crowdGain: null,
       started: false
     };
+
+var raceVideoState = { finalStretch: false };
+
+function getRaceVideoEl() { return el("race-atmo-video"); }
+
+function syncRaceVideoPlayback() {
+  var v = getRaceVideoEl();
+  if (!v) return;
+  var p = v.play();
+  if (p && typeof p.catch === "function") p.catch(function(){});
+}
+
+function setupRaceVideoPanel() {
+  var panel = el("race-video-panel");
+  var video = getRaceVideoEl();
+  var soundBtn = el("btn-video-sound");
+  var replayBtn = el("btn-video-replay");
+  var hint = el("video-audio-hint");
+  if (!panel || !video) return;
+
+  panel.classList.remove("lead-player", "lead-rival", "final-stretch", "heat-1", "heat-2", "heat-3", "hidden-by-fomo");
+  raceVideoState.finalStretch = false;
+
+  try { video.currentTime = 0; } catch (e) {}
+  video.muted = false;
+  video.volume = 0.75;
+  video.loop = false;
+  syncRaceVideoPlayback();
+
+  if (soundBtn) {
+    soundBtn.disabled = false;
+    soundBtn.textContent = "";
+    soundBtn.onclick = function() {
+      video.muted = false;
+      video.volume = 0.85;
+      syncRaceVideoPlayback();
+      soundBtn.textContent = "";
+      soundBtn.disabled = true;
+      if (hint) hint.textContent = "";
+      logEvent("video_sound_enabled");
+    };
+  }
+
+  if (replayBtn) {
+    replayBtn.onclick = function() {
+      try { video.currentTime = 0; } catch (e) {}
+      syncRaceVideoPlayback();
+      logEvent("video_replay_click");
+    };
+  }
+
+  if (hint) hint.textContent = "";
+}
+
+function updateRaceVideoCaption(textValue) {
+  var cap = el("race-video-caption");
+  if (cap && textValue) cap.textContent = textValue;
+}
+
+function flashRaceVideoPanel(isPlayerLead) {
+  var panel = el("race-video-panel");
+  if (!panel) return;
+  panel.classList.remove("lead-player", "lead-rival");
+  void panel.offsetWidth;
+  panel.classList.add(isPlayerLead ? "lead-player" : "lead-rival");
+  setTimeout(function() {
+    panel.classList.remove("lead-player", "lead-rival");
+  }, 800);
+}
+
+function updateRaceVideoHeat(elapsed, total) {
+  var panel = el("race-video-panel");
+  if (!panel || !total) return;
+
+  var pct = elapsed / total;
+  panel.classList.remove("heat-1", "heat-2", "heat-3");
+
+  if (pct > 0.75) panel.classList.add("heat-3");
+  else if (pct > 0.5) panel.classList.add("heat-2");
+  else if (pct > 0.25) panel.classList.add("heat-1");
+
+  if (pct > 0.8 && !raceVideoState.finalStretch) {
+    panel.classList.add("final-stretch");
+    raceVideoState.finalStretch = true;
+    updateRaceVideoCaption("Final stretch: cameras lock on the leaders while the crowd roars.");
+  }
+}
+
 
     function ensureAudioContext() {
       if (audio.ctx) return;
@@ -891,8 +1192,10 @@
 
     var slipperyTrackActive = false;
     var slipperyStartTime = 0;
+updateRaceVideoCaption("Trackside cameras catch the surface turning slick as traction starts to go.");
 
     function handleSlipperyTrack(elapsedMs) {
+
       if (!CONDITION.EXCITING) return;
       var track = el("race-track");
 
@@ -1016,15 +1319,16 @@
     }
 
     function updateHeatLevel(elapsed, total) {
-      if (!CONDITION.EXCITING) return;
-      var track = el("race-track");
-      if (!track) return;
-      var pct = elapsed / total;
-      track.classList.remove("heat-1", "heat-2", "heat-3");
-      if (pct > 0.75) track.classList.add("heat-3");
-      else if (pct > 0.5) track.classList.add("heat-2");
-      else if (pct > 0.25) track.classList.add("heat-1");
-    }
+  if (!CONDITION.EXCITING) return;
+  var track = el("race-track");
+  if (!track) return;
+  var pct = elapsed / total;
+  track.classList.remove("heat-1", "heat-2", "heat-3");
+  if (pct > 0.75) track.classList.add("heat-3");
+  else if (pct > 0.5) track.classList.add("heat-2");
+  else if (pct > 0.25) track.classList.add("heat-1");
+  updateRaceVideoHeat(elapsed, total);
+}
 
     function updatePositionBadges() {
       if (!CONDITION.EXCITING) return;
@@ -1136,20 +1440,32 @@
       if (!msg) return;
       var feed = el("status-feed");
       if (!feed) return;
-      var cls = dramatic ? "status-msg dramatic" : "status-msg";
-      feed.innerHTML = '<span class="' + cls + '">' + msg + '</span>';
-      logEvent("commentary", { type: type, message: msg });
+     var cls = dramatic ? "status-msg dramatic" : "status-msg";
+feed.innerHTML = '<span class="' + cls + '">' + msg + '</span>';
+
+if (type === "playerLeading") {
+  updateRaceVideoCaption("Crowd cameras swing toward your horse as it surges to the front.");
+} else if (type === "rivalLeading") {
+  updateRaceVideoCaption("The broadcast catches a rival horse stealing the lead in front of the grandstand.");
+} else if (type === "closeRace") {
+  updateRaceVideoCaption("The leaders are nearly level as the crowd volume rises.");
+} else if (type === "finalStretch") {
+  updateRaceVideoCaption("Final stretch: cameras lock on the leaders while the crowd roars.");
+} else if (type === "cheerReaction") {
+  updateRaceVideoCaption("The grandstand erupts as your support seems to lift the pace.");
+}
+
+logEvent("commentary", { type: type, message: msg });
     }
 
     var horseChosen = null;
     var horses = [];
     var raceInterval = null;
-    var interruptTimeout = null;
+
     var raceEndTimeout = null;
     var raceEnded = false;
     var raceStartPerfTime = null;
     var RACE_TOTAL_MS = null;
-    var FOMO_INTERRUPT_MS = null;
 
     var lastLeaderUpdateTime = 0;
     var LEADER_UPDATE_INTERVAL_MS = 2000;
@@ -1179,14 +1495,17 @@
       if (f) f.style.width = pct + "%";
     }
 
-    function setupIntro() {
-      var note = el("audio-note");
-      if (note) note.textContent = "  ";
-      el("btn-intro-continue").addEventListener("click", function() {
-        logEvent("instructions_ok");
-        showScreen("choose");
-      });
-    }
+  function setupIntro() {
+  var note = el("audio-note");
+  if (note) {
+    note.textContent =
+      " ";
+  }
+  el("btn-intro-continue").addEventListener("click", function() {
+    logEvent("instructions_ok");
+    showScreen("choose");
+  });
+}
 
     function setupHorseChoice() {
       var container = el("horse-choices");
@@ -1214,11 +1533,11 @@
       }
 
       confirmBtn.addEventListener("click", function() {
-        if (!horseChosen) return;
-        logEvent("horse_chosen", { horse: horseChosen });
-        startExcitingAmbience();
-        startRace();
-      });
+  if (!horseChosen) return;
+  logEvent("horse_chosen", { horse: horseChosen });
+  startExcitingAmbience();
+  startRace();
+});
     }
 
     function resetCheerState() {
@@ -1275,10 +1594,10 @@
             );
             spawnSparkles(chosen.el);
           }
-          shakeTrack();
-          setTimeout(function() {
-            if (chosen && chosen.el) chosen.el.classList.remove("surge");
-          }, 180);
+         shakeTrack();
+flashRaceVideoPanel(true);
+updateRaceVideoCaption("A burst of support ripples through the stands as your horse responds.");
+setTimeout(function() { if (chosen && chosen.el) chosen.el.classList.remove("surge"); }, 180);
         }
 
         updateStaminaUI();
@@ -1298,9 +1617,10 @@
     }
 
     function startRaceUI() {
-      showScreen("race");
-      updateBonusBanner();
-      setupRaceTrack();
+  showScreen("race");
+  updateBonusBanner();
+  setupRaceTrack();
+  setupRaceVideoPanel();
 
       var boostBtn = el("boost-btn");
       var cheerPanel = el("cheer-panel");
@@ -1320,27 +1640,16 @@
       leadChangeCount = 0;
     }
 
-function startRace() {
+    function startRace() {
   RACE_TOTAL_MS = 240 * 1000;
-  FOMO_INTERRUPT_MS = null;
-
   startRaceUI();
-  logEvent("race_start", {
-    FOMO: CONDITION.FOMO,
-    EXCITING: CONDITION.EXCITING
-  });
+  logEvent("race_start");
   startRaceAnimation();
-
-  if (CONDITION.FOMO) {
-    interruptTimeout = setTimeout(function() {
-      triggerFomoInterrupt();
-    }, 180 * 1000);
-  }
 
   raceEndTimeout = setTimeout(function() {
     if (!raceEnded) endRace("time_up");
   }, RACE_TOTAL_MS + 2000);
-}    
+}
 
     function setupRaceTrack() {
       var track = el("race-track");
@@ -1424,6 +1733,7 @@ function startRace() {
       lastLeaderUpdateTime = 0;
       if (!CONDITION.EXCITING) {
         feed.textContent = " ";
+	updateRaceVideoCaption("Grandstand cameras are following the race as the crowd noise builds.");
       }
 
       updateStaminaUI();
@@ -1579,8 +1889,9 @@ function startRace() {
                 leadChangeCount++;
                 var isPlayerNowLeading = (currentLeaderId === horseChosen);
                 flashLeadChange(isPlayerNowLeading);
-                shakeTrack();
-                playCrowdRoar();
+flashRaceVideoPanel(isPlayerNowLeading);
+shakeTrack();
+playCrowdRoar();
 
                 var laneEl2 = leaderHorse.el.parentElement;
                 if (laneEl2) {
@@ -1647,60 +1958,7 @@ function startRace() {
       }, stepInterval);
     }
 
-    function triggerFomoInterrupt() {
-      if (raceEnded) return;
-
-      var bbtn = el("boost-btn");
-      if (bbtn) {
-        bbtn.disabled = true;
-        bbtn.style.display = "none";
-      }
-
-      var cheerPanel = el("cheer-panel");
-      if (cheerPanel) cheerPanel.style.display = "none";
-
-      var feed = el("status-feed");
-      if (feed) feed.style.display = "none";
-
-      var progressWrap = el("race-progress-wrap");
-      if (progressWrap) progressWrap.classList.remove("visible");
-
-      var chosen = horses.find(function(h) { return h.id === horseChosen; });
-      if (chosen) {
-        var others = horses.filter(function(h) { return h.id !== horseChosen; });
-        if (others.length > 0) {
-          others.sort(function(a, b) { return b.pos - a.pos; });
-          var topOther = others[0];
-          chosen.pos = Math.max(chosen.pos, topOther.pos + 1.0);
-          chosen.pos = Math.min(96, chosen.pos);
-          chosen.el.style.left = chosen.pos + "%";
-        }
-      }
-
-      var overlay = el("fomo-overlay");
-      if (!overlay) return;
-      overlay.textContent =
-        "We now need you for the next part of the study.\n\n" +
-        "The other players will continue racing to the finish, and any lottery\n" +
-        "entries will be based on the final result.\n\n" +
-        "You will not see which horse wins, but the outcome will still count.";
-      overlay.classList.remove("hidden");
-
-      logEvent("fomo_interrupt");
-
-      if (raceInterval) {
-        clearInterval(raceInterval);
-        raceInterval = null;
-      }
-
-      stopAllAudio();
-
-      setTimeout(function() {
-        if (!raceEnded) endRace("fomo_interrupt");
-      }, 15000);
-    }
-
-    function computeWinnerId() {
+        function computeWinnerId() {
       if (!horses || horses.length === 0) return null;
       var best = horses[0];
       for (var i = 1; i < horses.length; i++) {
@@ -1751,55 +2009,38 @@ function startRace() {
     }
 
     function endRace(reason) {
-  if (raceEnded) return;
-  raceEnded = true;
+      if (raceEnded) return;
+      raceEnded = true;
 
-  if (raceInterval) {
-    clearInterval(raceInterval);
-    raceInterval = null;
-  }
-  if (interruptTimeout) {
-    clearTimeout(interruptTimeout);
-    interruptTimeout = null;
-  }
-  if (raceEndTimeout) {
-    clearTimeout(raceEndTimeout);
-    raceEndTimeout = null;
-  }
+      if (raceInterval) { clearInterval(raceInterval); raceInterval = null; }
+      if (raceEndTimeout) { clearTimeout(raceEndTimeout); raceEndTimeout = null; }
 
-  var bbtn = el("boost-btn");
-  if (bbtn) bbtn.disabled = true;
+      var bbtn = el("boost-btn");
+      if (bbtn) bbtn.disabled = true;
 
-  stopAllAudio();
+      stopAllAudio();
+var video = getRaceVideoEl();
+if (video) video.pause();
 
-  var winnerId = computeWinnerId();
-  logEvent("race_end", {
-    reason: reason,
-    winner: winnerId,
-    leadChanges: leadChangeCount
-  });
+var winnerId = computeWinnerId();
+      logEvent("race_end", { reason: reason, winner: winnerId, leadChanges: leadChangeCount });
 
-  var endTitle = screens.end ? screens.end.querySelector("h3") : null;
-  var endMsgEl = el("end-message-main");
-  var lbEl = el("leaderboard");
+      var endMsgEl = el("end-message-main");
+      var lbEl = el("leaderboard");
+      if (lbEl) lbEl.style.display = "none";
 
-  if (endTitle) {
-    endTitle.textContent = "You are the winner!";
-  }
-
-  if (endMsgEl) {
-    endMsgEl.textContent = "";
-    endMsgEl.style.display = "none";
-  }
-
-  if (lbEl) {
-    lbEl.innerHTML = buildLeaderboardHTML();
-    lbEl.style.display = "block";
-  }
-
-  showScreen("end");
-  finishAndExport();
+      if (endMsgEl) {
+        endMsgEl.textContent =
+          "";
+      }
+     if (lbEl) {
+  lbEl.innerHTML = buildLeaderboardHTML();
+  lbEl.style.display = "block";
 }
+
+      showScreen("end");
+      finishAndExport();
+    }
 
     function finishAndExport() {
       if (sessionEnded) return;
@@ -1845,6 +2086,17 @@ function startRace() {
 
 
 // Send message to Qualtrics when the end-screen button is clicked
+document.addEventListener("visibilitychange", function() {
+  var v = document.getElementById("race-atmo-video");
+  var raceScreen = document.getElementById("screen-race");
+  if (!v || !raceScreen) return;
+
+  if (document.visibilityState === "visible" && raceScreen.classList.contains("active")) {
+    var p = v.play();
+    if (p && typeof p.catch === "function") p.catch(function(){});
+  }
+});
+
 document.addEventListener("DOMContentLoaded", function () {
   var btn = document.getElementById("continueBtn");
   if (btn) {
